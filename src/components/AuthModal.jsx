@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { BookContext } from '../context/BookContext';
+import { BookContext } from '../Context/BookContext';
 import axios from 'axios';
 
 const AuthModal = () => {
@@ -18,7 +18,8 @@ const AuthModal = () => {
       setUser(response.data);
       setAuthModalOpen(false);
     } catch (err) {
-      setError('Invalid credentials');
+      console.error(err);
+      setError(err.response?.data || 'Invalid credentials');
     }
   };
 
@@ -30,7 +31,8 @@ const AuthModal = () => {
       setUser(response.data);
       setAuthModalOpen(false);
     } catch (err) {
-      setError('Failed to register');
+      console.error(err);
+      setError(err.response?.data || 'Failed to register');
     }
   };
 

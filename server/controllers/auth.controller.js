@@ -1,5 +1,5 @@
 const User = require('../models/user.model');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
@@ -10,7 +10,7 @@ exports.register = async (req, res) => {
       return res.status(400).send("All input is required");
     }
 
-    const oldUser = await User.findOne({ email });
+    const oldUser = User.findOne({ email });
 
     if (oldUser) {
       return res.status(409).send("User Already Exist. Please Login");
@@ -18,25 +18,29 @@ exports.register = async (req, res) => {
 
     const encryptedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
+    const user = User.create({
       username,
       email: email.toLowerCase(),
       password: encryptedPassword,
     });
 
     const token = jwt.sign(
-      { user_id: user._id, email },
+      { user_id: user.id, email },
       process.env.TOKEN_KEY,
       {
         expiresIn: "2h",
       }
     );
-    user.token = token;
 
-    res.status(201).json(user);
+    res.status(201).json({
+      _id: user.id,
+      username: user.username,
+      email: user.email,
+      token,
+    });
   } catch (err) {
-    console.log(err);
-    res.status(500).send("Something went wrong");
+    console.error("Registration Error:", err);
+    res.status(500).send(`Something went wrong during registration: ${err.message}`);
   }
 };
 
@@ -47,20 +51,23 @@ exports.login = async (req, res) => {
     if (!(email && password)) {
       return res.status(400).send("All input is required");
     }
-    const user = await User.findOne({ email });
+    const user = User.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
       const token = jwt.sign(
-        { user_id: user._id, email },
+        { user_id: user.id, email },
         process.env.TOKEN_KEY,
         {
           expiresIn: "2h",
         }
       );
 
-      user.token = token;
-
-      return res.status(200).json(user);
+      return res.status(200).json({
+        _id: user.id,
+        username: user.username,
+        email: user.email,
+        token,
+      });
     }
     res.status(400).send("Invalid Credentials");
   } catch (err) {
@@ -71,8 +78,8 @@ exports.login = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find({}, '-password');
-    res.status(200).json(users);
+    const users = User.findAll();
+    res.status(200).json(users.map(u => ({ _id: u.id, username: u.username, email: u.email })));
   } catch (err) {
     console.log(err);
     res.status(500).send("Something went wrong");

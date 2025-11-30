@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { BookContext } from '../context/BookContext';
+import { BookContext } from '../Context/BookContext';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
 const Messages = () => {
@@ -11,17 +11,19 @@ const Messages = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Fetch conversations
   useEffect(() => {
-    if (user) {
+    if (user?.token) {
       const fetchConversations = async () => {
         try {
           const received = await axios.get('http://localhost:5000/api/requests/received', {
-            headers: { 'Authorization': `Bearer ${user.token}` }
+            headers: { Authorization: `Bearer ${user.token}` }
           });
+
           const sent = await axios.get('http://localhost:5000/api/requests/sent', {
-            headers: { 'Authorization': `Bearer ${user.token}` }
+            headers: { Authorization: `Bearer ${user.token}` }
           });
-          
+
           const convos = [...received.data, ...sent.data].map(req => ({
             ...req,
             otherUser: req.owner._id === user._id ? req.requester : req.owner
@@ -34,52 +36,64 @@ const Messages = () => {
       };
       fetchConversations();
     }
-  }, [user]);
+  }, [user?.token]);
 
+  // Fetch messages when selecting a conversation
   useEffect(() => {
-    if (selectedConversation) {
-      const fetchMessages = async () => {
-        setLoading(true);
-        try {
-          const response = await axios.get(`http://localhost:5000/api/messages/${selectedConversation.book._id}/${selectedConversation.otherUser._id}`, {
-            headers: { 'Authorization': `Bearer ${user.token}` }
-          });
-          setMessages(response.data);
-        } catch (error) {
-          console.error('Error fetching messages:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchMessages();
-    }
-  }, [selectedConversation, user.token]);
+    if (!selectedConversation || !user?.token) return;
 
+    const fetchMessages = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/api/messages/${selectedConversation.book._id}/${selectedConversation.otherUser._id}`,
+          {
+            headers: { Authorization: `Bearer ${user.token}` }
+          }
+        );
+        setMessages(response.data);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, [selectedConversation, user?.token]);
+
+  // Send a message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConversation) return;
 
     try {
-      const response = await axios.post('http://localhost:5000/api/messages', {
-        receiverId: selectedConversation.otherUser._id,
-        bookId: selectedConversation.book._id,
-        message: newMessage,
-      }, {
-        headers: { 'Authorization': `Bearer ${user.token}` }
-      });
+      const response = await axios.post(
+        'http://localhost:5000/api/messages',
+        {
+          receiverId: selectedConversation.otherUser._id,
+          bookId: selectedConversation.book._id,
+          message: newMessage,
+        },
+        {
+          headers: { Authorization: `Bearer ${user.token}` }
+        }
+      );
+
       setMessages([...messages, response.data]);
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
-  
+
   if (!user) {
     return <div className="text-center mt-10">Please log in to view your messages.</div>;
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[calc(100vh-120px)] flex">
+
       {/* Conversations List */}
       <div className="w-1/3 border-r border-gray-200">
         <div className="p-4 border-b">
@@ -87,7 +101,7 @@ const Messages = () => {
         </div>
         <ul className="overflow-y-auto h-full">
           {conversations.map(convo => (
-            <li 
+            <li
               key={convo._id}
               onClick={() => setSelectedConversation(convo)}
               className={`p-4 cursor-pointer hover:bg-gray-100 ${selectedConversation?._id === convo._id ? 'bg-purple-100' : ''}`}
@@ -107,15 +121,21 @@ const Messages = () => {
               <h2 className="text-xl font-bold">Chat with {selectedConversation.otherUser.username}</h2>
               <p className="text-sm text-gray-500">Regarding: {selectedConversation.book.title}</p>
             </div>
+
             <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
-              {loading ? <p>Loading messages...</p> : messages.map(msg => (
-                <div key={msg._id} className={`mb-4 flex ${msg.sender._id === user._id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`inline-block p-3 rounded-lg max-w-xs ${msg.sender._id === user._id ? 'bg-purple-500 text-white' : 'bg-white'}`}>
-                    {msg.message}
+              {loading ? (
+                <p>Loading messages...</p>
+              ) : (
+                messages.map(msg => (
+                  <div key={msg._id} className={`mb-4 flex ${msg.sender._id === user._id ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`inline-block p-3 rounded-lg max-w-xs ${msg.sender._id === user._id ? 'bg-purple-500 text-white' : 'bg-white'}`}>
+                      {msg.message}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
+
             <form onSubmit={handleSendMessage} className="p-4 border-t flex">
               <input
                 type="text"
