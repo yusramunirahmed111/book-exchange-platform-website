@@ -15,8 +15,7 @@ const AuthModal = () => {
     setError('');
     try {
       const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
-      setUser(response.data);
-      setAuthModalOpen(false);
+            setUser(response.data);
     } catch (err) {
       console.error(err);
       setError(err.response?.data || 'Invalid credentials');
@@ -28,8 +27,7 @@ const AuthModal = () => {
     setError('');
     try {
       const response = await axios.post('http://localhost:5000/api/auth/register', { username, email, password });
-      setUser(response.data);
-      setAuthModalOpen(false);
+            setUser(response.data);
     } catch (err) {
       console.error(err);
       setError(err.response?.data || 'Failed to register');

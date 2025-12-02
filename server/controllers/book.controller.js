@@ -29,8 +29,9 @@ exports.getBookById = async (req, res) => {
 };
 
 exports.createBook = async (req, res) => {
-  const { title, author, genre, condition, location, imageUrl, bookUrl } = req.body;
+  const { title, author, genre, condition, location, bookUrl } = req.body;
   const owner = req.user.user_id;
+  const imageUrl = req.file ? req.file.path : req.body.imageUrl;
 
   const newBook = Book.create({
     title,

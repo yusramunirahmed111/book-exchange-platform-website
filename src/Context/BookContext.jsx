@@ -26,15 +26,26 @@ export const BookProvider = ({ children }) => {
   }, [token]);
 
   const login = (userData) => {
-    setUser(userData.user);
+    setUser(userData);
     setToken(userData.token);
+    localStorage.setItem('user', JSON.stringify(userData));
     setAuthModalOpen(false);
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
+    localStorage.removeItem('user');
   };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setToken(parsedUser.token);
+    }
+  }, []);
 
   const value = {
     books,

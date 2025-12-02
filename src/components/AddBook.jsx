@@ -9,25 +9,30 @@ const AddBook = ({ setAddingBook }) => {
   const [genre, setGenre] = useState('');
   const [condition, setCondition] = useState('Used');
   const [location, setLocation] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [image, setImage] = useState(null);
   const [bookUrl, setBookUrl] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('author', author);
+    formData.append('genre', genre);
+    formData.append('condition', condition);
+    formData.append('location', location);
+    formData.append('bookUrl', bookUrl);
+    if (image) {
+      formData.append('imageUrl', image);
+    }
+
     try {
-      const response = await axios.post('http://localhost:5000/api/books', {
-        title,
-        author,
-        genre,
-        condition,
-        location,
-        imageUrl,
-        bookUrl
-      }, {
+      const response = await axios.post('http://localhost:5000/api/books', formData, {
         headers: {
-          'Authorization': `Bearer ${user.token}`
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'multipart/form-data'
         }
       });
       console.log('Book added:', response.data);
@@ -105,13 +110,12 @@ const AddBook = ({ setAddingBook }) => {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700 mb-2" htmlFor="imageUrl">Image URL</label>
+            <label className="block text-gray-700 mb-2" htmlFor="image">Image</label>
             <input
-              type="text"
-              id="imageUrl"
+              type="file"
+              id="image"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
+              onChange={(e) => setImage(e.target.files[0])}
             />
           </div>
           <div className="mb-6">
