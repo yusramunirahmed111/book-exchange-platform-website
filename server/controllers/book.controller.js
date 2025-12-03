@@ -1,18 +1,9 @@
 const Book = require('../models/book.model');
-const User = require('../models/user.model');
-
-const populate = (books) => {
-  const users = User.findAll();
-  return books.map(book => {
-    const owner = users.find(user => user.id === book.owner);
-    return { ...book, owner: { _id: owner.id, username: owner.username } };
-  });
-};
 
 exports.getAllBooks = async (req, res) => {
   try {
-    const books = Book.findAll();
-    res.status(200).json(populate(books));
+    const books = await Book.find().populate('owner', 'username');
+    res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -20,9 +11,9 @@ exports.getAllBooks = async (req, res) => {
 
 exports.getBookById = async (req, res) => {
   try {
-    const book = Book.findById(req.params.id);
+    const book = await Book.findById(req.params.id).populate('owner', 'username');
     if (!book) return res.status(404).json({ message: 'Book not found' });
-    res.status(200).json(populate([book])[0]);
+    res.status(200).json(book);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -33,7 +24,7 @@ exports.createBook = async (req, res) => {
   const owner = req.user.user_id;
   const imageUrl = req.file ? req.file.path : req.body.imageUrl;
 
-  const newBook = Book.create({
+  const newBook = new Book({
     title,
     author,
     genre,
@@ -45,7 +36,8 @@ exports.createBook = async (req, res) => {
   });
 
   try {
-    res.status(201).json(newBook);
+    const savedBook = await newBook.save();
+    res.status(201).json(savedBook);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -53,14 +45,14 @@ exports.createBook = async (req, res) => {
 
 exports.updateBook = async (req, res) => {
   try {
-    const book = Book.findById(req.params.id);
+    const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: 'Book not found' });
 
     if (book.owner.toString() !== req.user.user_id) {
       return res.status(401).json({ message: 'User not authorized' });
     }
 
-    const updatedBook = Book.findByIdAndUpdate(req.params.id, req.body);
+    const updatedBook = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.status(200).json(updatedBook);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -69,14 +61,14 @@ exports.updateBook = async (req, res) => {
 
 exports.deleteBook = async (req, res) => {
   try {
-    const book = Book.findById(req.params.id);
+    const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: 'Book not found' });
 
     if (book.owner.toString() !== req.user.user_id) {
       return res.status(401).json({ message: 'User not authorized' });
     }
 
-    Book.findByIdAndRemove(req.params.id);
+    await book.remove();
     res.status(200).json({ message: 'Book deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
